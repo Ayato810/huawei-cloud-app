@@ -28,10 +28,10 @@ import {
   IconSend,
   IconX,
 } from '@tabler/icons-react';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useListState } from '@mantine/hooks';
+import { getEnabledCategories } from 'trace_events';
 
 export function Question({ nextStep }: { nextStep: () => void }) {
-
   const {
     questions,
     time,
@@ -64,16 +64,45 @@ export function Question({ nextStep }: { nextStep: () => void }) {
 
   const testId = totalNumberOfQuestions + '-' + Math.random().toString(36).substring(7);
 
-  const queries = useQueries({
+  /*   const queries = useQueries({
     queries: topics.flatMap((topic) =>
       Array.from({ length: topic.numberOfQuestions }, (_, index) => ({
         queryKey: ['question', topic.endpoint, index],
         queryFn: () => getQuestion(testId, topic.endpoint),
       }))
     ),
-  });
+  }); */
+  const [enabledQueries, handlers] = useListState<boolean>(Array(+totalNumberOfQuestions).fill(false));
 
-/*   const { data, isLoading, isSuccess, refetch } = useQuery({
+  let queryIndex = 0; // contador externo para el índice individual
+
+  const queriesArray = topics.flatMap((topic) =>
+    Array.from({ length: topic.numberOfQuestions }, (_, index) => {
+      const queryObj = {
+        queryKey: ['question', topic.endpoint, index],
+        queryFn: () => getQuestion(testId, topic.endpoint),
+        enabled: queryIndex === 0 ? true : enabledQueries[queryIndex],
+        staleTime: Infinity,
+      };
+      queryIndex++; // incrementar el contador externo
+      return queryObj;
+    })
+  );
+
+  const queries = queriesArray.map((query) => useQuery(query));
+
+  useEffect(() => {
+    const currentQuery = queries[questionId];
+    if (currentQuery && currentQuery.isSuccess) {
+      handlers.setItem(questionId + 1, true);
+      const data = currentQuery.data;
+      data.id = questionId;
+      addQuestion(data as Question);
+      setQuestionId(questionId + 1);
+    }
+  }, [queries[questionId]?.isSuccess]);
+
+  /*   const { data, isLoading, isSuccess, refetch } = useQuery({
     queryKey: ['reload-question'],
     queryFn: () => getQuestion(getCurrentTopicEndpoint(currentQuestionId)),
     staleTime: Infinity,
@@ -87,22 +116,14 @@ export function Question({ nextStep }: { nextStep: () => void }) {
     }
   }, [isSuccess]);
  */
-  useEffect(() => {
-    const currentQuery = queries[questionId];
-    if (currentQuery && currentQuery.isSuccess) {
-      const data = currentQuery.data;
-      data.id = questionId;
-      addQuestion(data as Question);
-      setQuestionId(questionId + 1);
-    }
-  }, [queries]);
+
   const timeInMinutes = typeof time === 'string' ? parseInt(time) : time;
 
   const correctAnswer = questions[currentQuestionId]?.correct_answer;
   const xIcon = <IconX style={{ width: rem(20), height: rem(20) }} />;
   const checkIcon = <IconCheck style={{ width: rem(20), height: rem(20) }} />;
 
-/*   const refreshQuestion = () => {
+  /*   const refreshQuestion = () => {
     //queries[currentQuestionId].refetch({ cancelRefetch: true });
     refetch();
     setRefresh(true);
@@ -196,10 +217,7 @@ export function Question({ nextStep }: { nextStep: () => void }) {
               </ActionIcon> */}
             </Group>
 
-            <Progress
-              value={(currentQuestionId + 1) * (100 / +totalNumberOfQuestions)}
-              size="lg"
-            />
+            <Progress value={(currentQuestionId + 1) * (100 / +totalNumberOfQuestions)} size="lg" />
             <Radio.Group
               key={currentQuestionId}
               value={questions[currentQuestionId]?.user_answer}
