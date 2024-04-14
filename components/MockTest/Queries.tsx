@@ -1,7 +1,6 @@
 import api from '../Utils/ApiClient';
-import { useMockTestStore } from './MockTestStore';
 
-export const getQuestion = async () => {
-  const response = await api.get('/question');
+export const getQuestion = async (testId: string, endpoint: string) => {
+  const response = await api.get('/question/'+ testId + '/' + endpoint);
   return response.data;
 };

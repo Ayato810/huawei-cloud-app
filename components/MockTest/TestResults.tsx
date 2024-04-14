@@ -4,11 +4,11 @@ import { useMockTestStore } from './MockTestStore';
 import { Answer } from './Answer';
 
 export function TestResults() {
-  const { numberOfQuestions, questions } = useMockTestStore();
+  const { totalNumberOfQuestions, questions } = useMockTestStore();
   const [currentCorrectAnswers, setCurrentCorrectAnswers] = useState(0);
   let countCorrectAnswers = 0;
   const totalOfQuestions =
-    typeof numberOfQuestions === 'string' ? parseInt(numberOfQuestions) : numberOfQuestions;
+    typeof totalNumberOfQuestions === 'string' ? parseInt(totalNumberOfQuestions) : totalNumberOfQuestions;
   for (let question of questions) {
     if (question.user_answer === question.correct_answer) {
       countCorrectAnswers++;

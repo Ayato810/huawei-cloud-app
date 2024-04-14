@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getQuestion } from './Queries';
 import {
   Accordion,
@@ -14,26 +14,79 @@ import {
   Button,
   Group,
   Modal,
+  ActionIcon,
 } from '@mantine/core';
 import Timer from './Timer';
 import { useMockTestStore } from './MockTestStore';
 import { useEffect, useState } from 'react';
-import { IconArrowLeft, IconArrowRight, IconCheck, IconSend, IconX } from '@tabler/icons-react';
+import {
+  IconArrowLeft,
+  IconArrowRight,
+  IconCheck,
+  IconHeart,
+  IconReload,
+  IconSend,
+  IconX,
+} from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 
-export function Question( { nextStep }: { nextStep: () => void }) {
-  const { questions, time, addQuestion, numberOfQuestions, updateUserAnswer } = useMockTestStore();
+export function Question({ nextStep }: { nextStep: () => void }) {
+
+  const {
+    questions,
+    time,
+    addQuestion,
+    totalNumberOfQuestions,
+    updateUserAnswer,
+    topics,
+    addQuestionAtIndex,
+  } = useMockTestStore();
   const [questionId, setQuestionId] = useState(0);
   const [opened, { open, close }] = useDisclosure(false);
+  const [refresh, setRefresh] = useState(false);
   const totalOfQuestions =
-    typeof numberOfQuestions === 'string' ? parseInt(numberOfQuestions) : numberOfQuestions;
+    typeof totalNumberOfQuestions === 'string'
+      ? parseInt(totalNumberOfQuestions)
+      : totalNumberOfQuestions;
+  const [currentQuestionId, setCurrentQuestionId] = useState(0);
+  const getCurrentTopicEndpoint = (currentId: number) => {
+    let totalQuestionsSoFar = 0;
+    for (const topic of topics) {
+      const { numberOfQuestions } = topic;
+      const nextTotal = totalQuestionsSoFar + Number(numberOfQuestions);
+      if (currentId < nextTotal) {
+        return topic.endpoint;
+      }
+      totalQuestionsSoFar = nextTotal;
+    }
+    return topics[0].endpoint;
+  };
+
+  const testId = totalNumberOfQuestions + '-' + Math.random().toString(36).substring(7);
+
   const queries = useQueries({
-    queries: Array.from({ length: totalOfQuestions }, (_, index) => ({
-      queryKey: ['question', index],
-      queryFn: getQuestion,
-      staleTime: Infinity,
-    })),
+    queries: topics.flatMap((topic) =>
+      Array.from({ length: topic.numberOfQuestions }, (_, index) => ({
+        queryKey: ['question', topic.endpoint, index],
+        queryFn: () => getQuestion(testId, topic.endpoint),
+      }))
+    ),
   });
+
+/*   const { data, isLoading, isSuccess, refetch } = useQuery({
+    queryKey: ['reload-question'],
+    queryFn: () => getQuestion(getCurrentTopicEndpoint(currentQuestionId)),
+    staleTime: Infinity,
+    enabled: !refresh,
+  });
+
+  useEffect(() => {
+    if (isSuccess) {
+      const updatedQuestion = data as Question;
+      addQuestionAtIndex(updatedQuestion, currentQuestionId);
+    }
+  }, [isSuccess]);
+ */
   useEffect(() => {
     const currentQuery = queries[questionId];
     if (currentQuery && currentQuery.isSuccess) {
@@ -45,11 +98,15 @@ export function Question( { nextStep }: { nextStep: () => void }) {
   }, [queries]);
   const timeInMinutes = typeof time === 'string' ? parseInt(time) : time;
 
-  const [currentQuestionId, setCurrentQuestionId] = useState(0);
-
   const correctAnswer = questions[currentQuestionId]?.correct_answer;
   const xIcon = <IconX style={{ width: rem(20), height: rem(20) }} />;
   const checkIcon = <IconCheck style={{ width: rem(20), height: rem(20) }} />;
+
+/*   const refreshQuestion = () => {
+    //queries[currentQuestionId].refetch({ cancelRefetch: true });
+    refetch();
+    setRefresh(true);
+  }; */
 
   const explanations = (
     <>
@@ -61,15 +118,10 @@ export function Question( { nextStep }: { nextStep: () => void }) {
         transitionProps={{ transition: 'fade', duration: 1500 }}
       >
         <Group justify="center">
-          <Button
-            w={75}
-            variant="outline"
-            disabled={currentQuestionId === 0}
-            onClick={close}
-          >
+          <Button w={75} variant="outline" onClick={close}>
             No
           </Button>
-          <Button w={75} color='red' variant='outline' onClick={nextStep}>
+          <Button w={75} color="red" variant="outline" onClick={nextStep}>
             Yes
           </Button>
         </Group>
@@ -122,19 +174,31 @@ export function Question( { nextStep }: { nextStep: () => void }) {
       <Accordion.Panel>{explanations}</Accordion.Panel>
     </Accordion.Item>
   );
+
   return (
     <Grid mt="md">
       <Grid.Col span={3}></Grid.Col>
       <Grid.Col span={6}>
         <Skeleton visible={queries[currentQuestionId].isLoading}>
           <Stack>
-            <Title order={4} c="blue">
-              Question {currentQuestionId + 1} of {numberOfQuestions}
-            </Title>
+            <Group justify="space-between">
+              <Title order={4} c="blue">
+                Question {currentQuestionId + 1} of {totalNumberOfQuestions}
+              </Title>
+              {/* <ActionIcon
+                variant="gradient"
+                size="xl"
+                aria-label="Gradient action icon"
+                gradient={{ from: 'blue', to: 'cyan', deg: 90 }}
+                onClick={refreshQuestion}
+              >
+                <IconReload style={{ width: rem(20), height: rem(20) }} />
+              </ActionIcon> */}
+            </Group>
+
             <Progress
-              value={currentQuestionId + 1}
+              value={(currentQuestionId + 1) * (100 / +totalNumberOfQuestions)}
               size="lg"
-              transitionDuration={totalOfQuestions}
             />
             <Radio.Group
               key={currentQuestionId}
@@ -194,7 +258,9 @@ export function Question( { nextStep }: { nextStep: () => void }) {
                 </Button>
               )}
             </Group>
-            <Accordion variant="separated">{answers}</Accordion>
+            <Accordion key={'answers' + currentQuestionId} variant="separated">
+              {answers}
+            </Accordion>
           </Stack>
         </Skeleton>
       </Grid.Col>

@@ -1,34 +1,32 @@
-import { Chip, Group, NumberInput, Title } from '@mantine/core';
+import { Chip, Fieldset, Flex, Group, NumberInput, Title } from '@mantine/core';
 import { useMockTestStore } from './MockTestStore';
+import { useEffect } from 'react';
 
 export function TestSettings() {
-  const { topics, toggleTopic, numberOfQuestions, setNumberOfQuestions, time, setTime } =
+  const { topics, time, setTime, totalNumberOfQuestions, setTotalNumberOfQuestions, setTopicNumberOfQuestions } =
     useMockTestStore();
-
+  useEffect(() => {
+    setTotalNumberOfQuestions(topics.reduce((acc, topic) => acc + (+topic.numberOfQuestions), 0))
+  }, [topics])
   return (
     <>
-      <Title order={5}>Test Topics</Title>
-      <Group justify="center">
+      <Fieldset legend="N° of Questions">
+      <Group justify="center" wrap="wrap">
         {topics.map((topic) => (
-          <Chip
+          <NumberInput
+            w={300}
             key={topic.name}
-            checked={topic.checked}
-            variant="light"
-            onChange={() => toggleTopic(topic.name)}
-          >
-            {topic.name}
-          </Chip>
+            label={topic.name}
+            value={topic.numberOfQuestions}
+            onChange={(value) => setTopicNumberOfQuestions(topics.indexOf(topic), +value)}
+            min={0}
+          />
         ))}
       </Group>
-      <Group justify="center">
+      </Fieldset>
+      <Group>
         <NumberInput
-          label="N° of questions"
-          min={1}
-          clampBehavior="strict"
-          value={numberOfQuestions}
-          onChange={setNumberOfQuestions}
-        />
-        <NumberInput
+          w={300}
           label="Duration"
           min={1}
           clampBehavior="strict"

@@ -32,9 +32,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 
 export function Answer() {
-  const { questions, time, numberOfQuestions } = useMockTestStore();
-  const totalOfQuestions =
-    typeof numberOfQuestions === 'string' ? parseInt(numberOfQuestions) : numberOfQuestions;
+  const { questions, time, totalNumberOfQuestions } = useMockTestStore();
 
   const timeInMinutes = typeof time === 'string' ? parseInt(time) : time;
 
@@ -50,7 +48,7 @@ export function Answer() {
       <Stack>
         <Group justify="space-between">
           <Title order={4} c="blue">
-            Question {currentQuestionId + 1} of {numberOfQuestions}
+            Question {currentQuestionId + 1} of {+totalNumberOfQuestions}
           </Title>
           <ThemeIcon
             color={questions[currentQuestionId]?.user_answer === correctAnswer ? 'teal' : 'red'}
@@ -59,7 +57,7 @@ export function Answer() {
             {questions[currentQuestionId]?.user_answer === correctAnswer ? checkIcon : xIcon}
           </ThemeIcon>
         </Group>
-        <Progress value={currentQuestionId + 1} size="lg" transitionDuration={totalOfQuestions} />
+        <Progress value={(currentQuestionId + 1) * 100 / +totalNumberOfQuestions} size="lg" />
         {questions[currentQuestionId]?.statement}
         <Alert
           variant="light"
@@ -151,7 +149,7 @@ export function Answer() {
           <Button
             w={100}
             rightSection={<IconArrowRight size={14} />}
-            disabled={currentQuestionId === totalOfQuestions - 1}
+            disabled={currentQuestionId === +totalNumberOfQuestions - 1}
             onClick={() => setCurrentQuestionId(currentQuestionId + 1)}
           >
             Next

@@ -2,52 +2,63 @@ import { create } from 'zustand';
 
 type Topic = {
   name: string;
-  checked: boolean;
+  numberOfQuestions: number;
+  endpoint: string;
 };
 
 type State = {
   questions: Question[];
   topics: Topic[];
-  numberOfQuestions: string | number;
+  totalNumberOfQuestions: string | number;
   time: string | number;
 };
 
 type Action = {
-  setNumberOfQuestions: (questions: string | number) => void;
+  setTotalNumberOfQuestions: (questions: string | number) => void;
   setTime: (time: string | number) => void;
-  toggleTopic: (topicName: string) => void;
   addQuestion: (question: Question) => void;
   updateUserAnswer: (questionIndex: number, userAnswer: string) => void;
+  setTopicNumberOfQuestions: (topicIndex: number, numberOfQuestions: number) => void;
+  addQuestionAtIndex: (question: Question, index: number) => void;
 };
 
 export const useMockTestStore = create<State & Action>()((set) => ({
   questions: [],
   topics: [
-    { name: 'Cloud Basics', checked: true },
-    { name: 'Compute Cloud Services', checked: false },
-    { name: 'Network Cloud Services', checked: false },
-    { name: 'Storage Cloud Services', checked: false },
-    { name: 'Database, Security, and other Services', checked: false },
-    { name: 'Huawei Cloud O&M Basics', checked: false },
+    { name: 'Cloud Basics', numberOfQuestions: 8, endpoint: 'cloud-basics' },
+    { name: 'Compute Cloud Services', numberOfQuestions: 11, endpoint: 'compute-cloud-services' },
+    { name: 'Network Cloud Services', numberOfQuestions: 11, endpoint: 'network-cloud-services' },
+    { name: 'Storage Cloud Services', numberOfQuestions: 11, endpoint: 'storage-cloud-services' },
+    {
+      name: 'Database, Security, and other Services',
+      numberOfQuestions: 6,
+      endpoint: 'database-security-other-services',
+    },
+    { name: 'Huawei Cloud O&M Basics', numberOfQuestions: 8, endpoint: 'huawei-cloud-o-m-basics' },
   ],
-  numberOfQuestions: 65,
+  totalNumberOfQuestions: 55,
   time: 90,
-  setNumberOfQuestions: (numberOfQuestions: any) => set(() => ({ numberOfQuestions })),
+  setTotalNumberOfQuestions: (totalNumberOfQuestions: any) =>
+    set(() => ({ totalNumberOfQuestions })),
   setTime: (time: any) => set(() => ({ time })),
-  toggleTopic: (topicName: string) =>
-    set((state) => ({
-      topics: state.topics.map((topic) =>
-        topic.name === topicName ? { ...topic, checked: !topic.checked } : topic
-      ),
-    })),
   addQuestion: (question: Question) =>
     set((state) => ({
       questions: [...state.questions, question],
     })),
-    updateUserAnswer: (questionIndex: number, userAnswer: string) =>
+  updateUserAnswer: (questionIndex: number, userAnswer: string) =>
     set((state) => ({
       questions: state.questions.map((question, index) =>
         index === questionIndex ? { ...question, user_answer: userAnswer } : question
       ),
+    })),
+  setTopicNumberOfQuestions: (topicIndex: number, numberOfQuestions: number) =>
+    set((state) => ({
+      topics: state.topics.map((topic, index) =>
+        index === topicIndex ? { ...topic, numberOfQuestions } : topic
+      ),
+    })),
+  addQuestionAtIndex: (question: Question, index: number) =>
+    set((state) => ({
+      questions: [...state.questions.slice(0, index), question, ...state.questions.slice(index)],
     })),
 }));
